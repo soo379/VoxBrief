@@ -1,0 +1,1409 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VoxBrief — AI 회의록</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Noto+Sans+KR:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #0a0e1f;
+    --bg-grad: radial-gradient(1200px 600px at 15% -10%, #4c3fae40, transparent 60%),
+               radial-gradient(1000px 700px at 110% 10%, #7c3aed2e, transparent 55%),
+               #0a0e1f;
+    --surface: #131a2e;
+    --surface-2: #182136;
+    --surface-hover: #1e2a45;
+    --border: #263457;
+    --border-soft: #26345799;
+    --text: #eef1fb;
+    --text-dim: #9aa5c9;
+    --text-faint: #5b6790;
+    --accent: #8b7bf7;
+    --accent-strong: #6c5ce7;
+    --accent-soft: #8b7bf722;
+    --secondary: #a78bfa;
+    --secondary-soft: #a78bfa22;
+    --vermilion: #ff5d3a;
+    --vermilion-soft: #ff5d3a1e;
+    --green: #34d399;
+    --green-soft: #34d39920;
+    --radius-lg: 20px;
+    --radius-md: 14px;
+    --radius-sm: 9px;
+    --font-display: 'Space Grotesk', 'Noto Sans KR', 'Noto Sans JP', 'Noto Sans SC', sans-serif;
+    --font-body: 'Noto Sans KR', 'Noto Sans JP', 'Noto Sans SC', 'Space Grotesk', sans-serif;
+  }
+
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; padding:0; }
+  body{
+    background: var(--bg-grad);
+    color: var(--text);
+    font-family: var(--font-body);
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+  ::selection{ background: var(--accent-soft); color: var(--text); }
+
+  .shell{ max-width: 1180px; margin: 0 auto; padding: 28px 24px 80px; }
+  .hidden{ display:none !important; }
+
+  /* ---------- Login ---------- */
+  .login-overlay{
+    position: fixed; inset:0; background: var(--bg-grad);
+    display:flex; align-items:center; justify-content:center; z-index: 100; padding: 20px;
+  }
+  .login-card{
+    width: 100%; max-width: 380px; background: var(--surface);
+    border: 1px solid var(--border-soft); border-radius: var(--radius-lg);
+    padding: 34px 30px; text-align:center;
+  }
+  .login-card .brand-mark{ margin: 0 auto 18px; }
+  .login-card h2{ font-family: var(--font-display); font-size: 20px; font-weight:600; margin: 0 0 6px; }
+  .login-card p{ font-size: 13px; color: var(--text-faint); margin: 0 0 22px; }
+  .login-card input{
+    width:100%; background: var(--surface-2); border:1px solid var(--border);
+    border-radius: 10px; color: var(--text); padding: 12px 14px; font-size: 14px;
+    font-family: var(--font-body); outline:none; margin-bottom: 10px;
+  }
+  .login-card input:focus{ border-color: var(--accent-strong); }
+  .lang-row{ display:flex; gap:6px; justify-content:center; margin-bottom: 20px; }
+  .lang-chip{
+    border:1px solid var(--border); background: var(--surface-2); color: var(--text-dim);
+    font-size:12px; padding: 6px 11px; border-radius: 999px; cursor:pointer; font-weight:600;
+  }
+  .lang-chip.active{ background: var(--accent-soft); border-color: var(--accent-strong); color: var(--accent); }
+  .login-card .btn-primary{ width:100%; justify-content:center; padding: 12px; font-size: 14.5px; }
+
+  /* ---------- Header ---------- */
+  .topbar{ display:flex; align-items:center; justify-content:space-between; margin-bottom: 32px; gap: 16px; flex-wrap: wrap; }
+  .brand{ display:flex; align-items:center; gap:12px; }
+  .brand-mark{
+    width: 38px; height: 38px; border-radius: 11px;
+    background: linear-gradient(135deg, var(--accent) 0%, var(--secondary) 100%);
+    display:flex; align-items:center; justify-content:center;
+    box-shadow: 0 0 24px #8b7bf733; flex-shrink:0;
+  }
+  .brand-mark svg{ width:20px; height:20px; }
+  .brand-text h1{ font-family: var(--font-display); font-size: 19px; font-weight: 600; letter-spacing: -0.02em; margin:0; }
+  .brand-text p{ margin:1px 0 0; font-size: 12px; color: var(--text-faint); letter-spacing: 0.02em; }
+
+  .topbar-right{ display:flex; align-items:center; gap:10px; flex-wrap: wrap; }
+  .lang-switch{ display:flex; gap:4px; background: var(--surface); border:1px solid var(--border-soft); padding:3px; border-radius: 10px; }
+  .lang-switch button{
+    border:none; background:transparent; color: var(--text-faint); font-size:11.5px; font-weight:700;
+    padding: 5px 9px; border-radius: 7px; cursor:pointer;
+  }
+  .lang-switch button.active{ background: var(--accent-soft); color: var(--accent); }
+
+  .user-chip{ display:flex; align-items:center; gap:8px; background: var(--surface); border:1px solid var(--border-soft); padding: 5px 10px 5px 5px; border-radius: 999px; }
+  .user-avatar{
+    width:26px; height:26px; border-radius:50%; background: linear-gradient(135deg, var(--secondary), var(--accent));
+    display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; color:#0a0e1f;
+  }
+  .user-chip span{ font-size:12.5px; color: var(--text-dim); max-width:100px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .user-chip button{ border:none; background:none; color: var(--text-faint); cursor:pointer; font-size: 11px; padding: 2px 4px; }
+  .user-chip button:hover{ color: var(--vermilion); }
+
+  .btn{
+    font-family: var(--font-body); border: 1px solid var(--border); background: var(--surface); color: var(--text);
+    padding: 10px 16px; border-radius: var(--radius-sm); font-size: 13.5px; font-weight: 500; cursor: pointer;
+    display:inline-flex; align-items:center; gap:7px; transition: all .15s ease; white-space: nowrap;
+  }
+  .btn:hover{ background: var(--surface-hover); border-color: #34437a; }
+  .btn:active{ transform: scale(0.98); }
+  .btn-primary{
+    background: linear-gradient(135deg, var(--accent-strong), var(--secondary));
+    border: none; color: #0d0a1f; font-weight: 600; box-shadow: 0 4px 18px #6c5ce73a;
+  }
+  .btn-primary:hover{ filter: brightness(1.08); }
+  .btn-primary:disabled{ opacity:.45; cursor:not-allowed; filter:none; box-shadow:none; }
+  .btn-ghost{ background: transparent; border-color: var(--border-soft); color: var(--text-dim); }
+  .btn-ghost:hover{ color: var(--text); }
+  .btn-sm{ padding: 7px 12px; font-size: 12.5px; border-radius: 8px; }
+  .btn svg{ width:15px; height:15px; }
+
+  /* ---------- Layout ---------- */
+  .grid{ display:grid; grid-template-columns: 1.3fr 1fr; gap: 20px; align-items:start; }
+  @media (max-width: 880px){ .grid{ grid-template-columns: 1fr; } }
+
+  .card{ background: var(--surface); border: 1px solid var(--border-soft); border-radius: var(--radius-lg); padding: 22px; }
+  .card + .card{ margin-top: 20px; }
+  .card-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom: 14px; gap: 10px; flex-wrap: wrap;}
+  .card-title{ font-family: var(--font-display); font-size: 15px; font-weight: 600; display:flex; align-items:center; gap:8px; }
+  .eyebrow{ font-size: 11px; letter-spacing: 0.08em; color: var(--text-faint); text-transform: uppercase; font-weight: 600; }
+
+  /* ---------- Recorder ---------- */
+  .recorder{ display:flex; flex-direction:column; align-items:center; gap: 18px; padding: 30px 20px 10px; }
+  .mic-wrap{ position:relative; width: 108px; height: 108px; display:flex; align-items:center; justify-content:center; }
+  .mic-ring{ position:absolute; inset:0; border-radius:50%; border: 1.5px solid var(--border); transition: all .2s ease; }
+  .mic-ring.pulse{ animation: pulseRing 1.6s ease-out infinite; border-color: var(--vermilion); }
+  @keyframes pulseRing{ 0%{ transform: scale(0.82); opacity: .9; } 100%{ transform: scale(1.5); opacity: 0; } }
+  .mic-btn{
+    width: 84px; height: 84px; border-radius: 50%; border: none; cursor:pointer;
+    background: linear-gradient(135deg, var(--accent), var(--secondary));
+    display:flex; align-items:center; justify-content:center; box-shadow: 0 8px 30px #8b7bf72e;
+    transition: all .15s ease; z-index: 1;
+  }
+  .mic-btn.recording{ background: linear-gradient(135deg, var(--vermilion), #ff8a5c); }
+  .mic-btn:hover{ transform: scale(1.04); }
+  .mic-btn svg{ width: 30px; height: 30px; color: #0d0a1f; }
+
+  .wave{ display:flex; align-items:flex-end; gap:3px; height: 26px; }
+  .wave span{ width: 3px; border-radius: 2px; background: var(--accent); height: 6px; animation: bar 1.1s ease-in-out infinite; opacity: .35; }
+  .wave.live span{ opacity: 1; }
+  .wave span:nth-child(1){ animation-delay: 0s; } .wave span:nth-child(2){ animation-delay: .12s; }
+  .wave span:nth-child(3){ animation-delay: .24s; } .wave span:nth-child(4){ animation-delay: .36s; }
+  .wave span:nth-child(5){ animation-delay: .48s; } .wave span:nth-child(6){ animation-delay: .6s; }
+  .wave span:nth-child(7){ animation-delay: .72s; }
+  @keyframes bar{ 0%,100%{ height: 6px; } 50%{ height: 24px; } }
+  .wave:not(.live) span{ animation: none; height: 6px; }
+
+  .rec-status{ font-size: 12.5px; color: var(--text-faint); text-align:center; min-height: 16px; }
+  .rec-status.err{ color: var(--vermilion); }
+
+  .transcript-box{
+    width: 100%; min-height: 160px; background: var(--surface-2); border: 1px solid var(--border);
+    border-radius: var(--radius-md); color: var(--text); font-size: 14.5px; line-height: 1.7; padding: 16px;
+    font-family: var(--font-body); resize: vertical; outline: none; transition: border-color .15s;
+  }
+  .transcript-box:focus{ border-color: var(--accent-strong); }
+  .transcript-box::placeholder{ color: var(--text-faint); }
+
+  .field-label{ font-size:12.5px; color:var(--text-dim); margin: 2px 0 8px; display:block; }
+  input.meta-input{
+    width:100%; background: var(--surface-2); border:1px solid var(--border);
+    border-radius: 8px; color: var(--text); padding: 9px 12px; font-size: 13.5px;
+    font-family: var(--font-body); outline:none;
+  }
+  input.meta-input:focus{ border-color: var(--accent-strong); }
+
+  .action-row{ display:flex; gap:10px; justify-content:flex-end; margin-top:14px; flex-wrap:wrap; }
+
+  /* ---------- Summary ---------- */
+  .empty-state{ text-align:center; padding: 46px 20px; color: var(--text-faint); }
+  .empty-state svg{ width: 40px; height:40px; margin-bottom: 12px; opacity:.5; }
+  .empty-state p{ font-size: 13.5px; margin: 0; line-height:1.6; }
+
+  .pill{ display:inline-flex; align-items:center; gap:6px; background: var(--accent-soft); color: var(--accent); border-radius: 999px; padding: 4px 11px; font-size: 12px; font-weight:600; }
+  .summary-topic{ font-family: var(--font-display); font-size: 20px; font-weight:600; margin: 10px 0 6px; }
+  .summary-lead{ font-size: 14px; line-height: 1.75; color: var(--text-dim); margin: 0 0 20px; white-space: pre-line;}
+
+  .sec{ margin-bottom: 20px; } .sec:last-child{ margin-bottom:0; }
+  .sec-title{ font-size: 12.5px; font-weight:700; letter-spacing:.04em; text-transform:uppercase; color: var(--text-faint); margin-bottom: 10px; display:flex; align-items:center; gap:7px; }
+  .sec-title .dot{ width:6px; height:6px; border-radius:50%; background: var(--accent); }
+
+  .agenda-item{ border-left: 2px solid var(--border); padding: 4px 0 4px 14px; margin-bottom: 12px; font-size: 13.5px; line-height:1.6; }
+  .agenda-item b{ display:block; color: var(--text); font-weight:600; margin-bottom:2px; }
+  .agenda-item span{ color: var(--text-dim); }
+
+  ul.plain{ margin:0; padding-left: 18px; }
+  ul.plain li{ font-size: 13.5px; line-height: 1.75; color: var(--text-dim); margin-bottom: 4px; }
+  ul.plain li::marker{ color: var(--green); }
+
+  table.action-table{ width:100%; border-collapse: collapse; font-size: 13px; }
+  table.action-table th{ text-align:left; font-size: 11.5px; color: var(--text-faint); font-weight:600; padding: 0 8px 8px 0; border-bottom: 1px solid var(--border); text-transform:uppercase; letter-spacing:.03em; }
+  table.action-table td{ padding: 9px 8px 9px 0; border-bottom: 1px solid var(--border-soft); color: var(--text-dim); vertical-align: top; }
+  table.action-table td.owner{ color: var(--secondary); font-weight:600; white-space:nowrap; }
+  table.action-table td.due{ color: var(--vermilion); white-space:nowrap; }
+  table.action-table tr:last-child td{ border-bottom:none; }
+
+  .followup-box{ display:flex; align-items:center; gap:10px; padding: 12px 14px; background: var(--surface-2); border-radius: var(--radius-sm); border:1px solid var(--border); }
+  .followup-box.needed{ border-color: #ff5d3a55; }
+  .followup-badge{ font-size:11.5px; font-weight:700; padding:3px 9px; border-radius:6px; background: var(--green-soft); color: var(--green); }
+  .followup-box.needed .followup-badge{ background: var(--vermilion-soft); color: var(--vermilion); }
+
+  .loading-row{ display:flex; align-items:center; gap:10px; color: var(--text-dim); font-size:13.5px; padding: 30px 0; justify-content:center;}
+  .spinner{ width:16px; height:16px; border-radius:50%; border:2px solid var(--border); border-top-color: var(--accent); animation: spin .7s linear infinite; }
+  @keyframes spin{ to{ transform: rotate(360deg); } }
+
+  /* ---------- Calendar ---------- */
+  .cal-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom: 12px; }
+  .cal-nav{ display:flex; gap:4px; }
+  .cal-nav button{ border:1px solid var(--border-soft); background: var(--surface-2); color: var(--text-dim); width:26px; height:26px; border-radius:7px; cursor:pointer; display:flex; align-items:center; justify-content:center; }
+  .cal-nav button:hover{ background: var(--surface-hover); color: var(--text); }
+  .cal-month-label{ font-size: 13.5px; font-weight:600; color: var(--text); }
+  .cal-grid{ display:grid; grid-template-columns: repeat(7, 1fr); gap: 2px; max-width: 260px; margin: 0 auto; }
+  .cal-dow{ font-size: 9.5px; color: var(--text-faint); text-align:center; padding-bottom: 3px; font-weight:600; }
+  .cal-day{
+    position:relative; aspect-ratio: 1/1; display:flex; align-items:center; justify-content:center;
+    font-size: 11px; color: var(--text-dim); border-radius: 6px; cursor:pointer; background: transparent;
+  }
+  .cal-day:hover{ background: var(--surface-2); }
+  .cal-day.empty{ cursor:default; }
+  .cal-day.empty:hover{ background:transparent; }
+  .cal-day.today{ border: 1px solid var(--accent-soft); color: var(--text); }
+  .cal-day.has-meeting::after{
+    content:''; position:absolute; bottom: 3px; width:3px; height:3px; border-radius:50%; background: var(--accent);
+  }
+  .cal-day.selected{ background: var(--accent-strong); color: #0d0a1f; font-weight:700; }
+  .cal-day.selected::after{ background: #0d0a1f; }
+  .cal-filter-row{ display:flex; justify-content:space-between; align-items:center; margin-top:12px; font-size:12px; color: var(--text-faint); }
+  .cal-filter-row button{ border:none; background:none; color: var(--accent); cursor:pointer; font-size:12px; font-weight:600; }
+
+  /* ---------- History ---------- */
+  .history-group{ margin-bottom: 14px; }
+  .history-group:last-child{ margin-bottom:0; }
+  .history-group-title{ font-size: 12.5px; font-weight:700; color: var(--text-faint); text-transform:uppercase; letter-spacing:.03em; margin-bottom:9px; }
+  .history-list{ display:flex; flex-direction:column; gap:10px; }
+  .history-item{ background: var(--surface-2); border:1px solid var(--border); border-radius: var(--radius-sm); padding: 14px 16px; cursor:pointer; transition: all .15s; }
+  .history-item:hover{ border-color: #34437a; background: var(--surface-hover); }
+  .history-item .h-title{ font-size:14.5px; font-weight:600; color: var(--text); margin-bottom:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .history-item .h-meta{ font-size:12px; color: var(--text-faint); }
+  .history-empty{ font-size:13px; color: var(--text-faint); padding: 14px 4px; text-align:center; }
+
+  /* ---------- Paywall / Payment ---------- */
+  .paywall-overlay{
+    position: fixed; inset:0; background: rgba(6,8,17,0.72); backdrop-filter: blur(3px);
+    display:flex; align-items:center; justify-content:center; z-index: 150; padding: 20px;
+  }
+  .paywall-card{
+    width:100%; max-width: 440px; background: var(--surface); border:1px solid var(--border-soft);
+    border-radius: var(--radius-lg); padding: 30px 28px; text-align:center;
+  }
+  .paywall-icon{
+    width:48px; height:48px; border-radius: 50%; margin: 0 auto 16px;
+    background: var(--vermilion-soft); display:flex; align-items:center; justify-content:center;
+  }
+  .paywall-icon svg{ width:22px; height:22px; }
+  .paywall-card h3{ font-family: var(--font-display); font-size: 18px; font-weight:600; margin: 0 0 8px; }
+  .paywall-card p{ font-size: 13px; color: var(--text-dim); line-height:1.6; margin: 0 0 22px; }
+  .google-btn{
+    width:100%; display:flex; align-items:center; justify-content:center; gap:10px;
+    background: #fff; color: #1f1f1f; border:none; border-radius: 10px; padding: 12px; font-size: 14px;
+    font-weight:600; cursor:pointer; font-family: var(--font-body);
+  }
+  .google-btn:hover{ background:#f4f4f4; }
+  .google-btn svg{ width:18px; height:18px; }
+  .demo-note{ font-size: 11px; color: var(--text-faint); margin-top: 14px; }
+
+  .plan-grid{ display:flex; flex-direction:column; gap:10px; text-align:left; margin-bottom: 8px; }
+  .plan-card{
+    border:1px solid var(--border); background: var(--surface-2); border-radius: var(--radius-md);
+    padding: 14px 16px; cursor:pointer; transition: all .15s; position:relative;
+  }
+  .plan-card:hover{ border-color: var(--accent-strong); background: var(--surface-hover); }
+  .plan-card.recommended{ border-color: var(--accent-strong); }
+  .plan-card .plan-badge{
+    position:absolute; top:-9px; right: 14px; background: var(--accent-strong); color:#0d0a1f;
+    font-size: 10.5px; font-weight:700; padding: 2px 9px; border-radius: 999px;
+  }
+  .plan-name{ font-size: 14px; font-weight:700; color: var(--text); margin-bottom:2px; }
+  .plan-price{ font-size: 13px; color: var(--accent); font-weight:600; margin-bottom:6px; }
+  .plan-desc{ font-size: 12px; color: var(--text-dim); line-height:1.5; }
+
+  .back-link{ background:none; border:none; color: var(--text-faint); font-size:12px; cursor:pointer; margin-top: 6px; }
+  .back-link:hover{ color: var(--text-dim); }
+
+  .usage-badge{
+    display:flex; align-items:center; gap:6px; background: var(--surface); border:1px solid var(--border-soft);
+    padding: 6px 12px; border-radius: 999px; font-size:12px; color: var(--text-dim); font-weight:600;
+  }
+  .usage-badge.sub{ color: var(--green); border-color: #34d39944; }
+  .usage-badge .dot-ico{ width:6px; height:6px; border-radius:50%; background: var(--accent); }
+  .usage-badge.sub .dot-ico{ background: var(--green); }
+
+  .toast{
+    position: fixed; bottom: 26px; left:50%; transform: translateX(-50%);
+    background: var(--surface-hover); border:1px solid var(--border); color: var(--text);
+    padding: 11px 20px; border-radius: 10px; font-size: 13px; box-shadow: 0 10px 30px #00000055;
+    opacity:0; pointer-events:none; transition: opacity .25s, transform .25s; z-index: 200;
+  }
+  .toast.show{ opacity:1; transform: translateX(-50%) translateY(-6px); }
+</style>
+</head>
+<body>
+
+<div class="shell" id="appRoot">
+
+  <div class="topbar">
+    <div class="brand">
+      <div class="brand-mark">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M12 2a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" stroke="#0d0a1f" stroke-width="2"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3" stroke="#0d0a1f" stroke-width="2" stroke-linecap="round"/></svg>
+      </div>
+      <div class="brand-text">
+        <h1>VoxBrief</h1>
+        <p data-i18n="tagline">회의는 말하고, 정리는 AI가</p>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <div class="lang-switch" id="topLangSwitch"></div>
+      <button class="btn btn-ghost btn-sm" id="listenGuideBtn"><span data-i18n="listenUsageLabel">🔊 사용법 듣기</span></button>
+      <button class="btn btn-ghost btn-sm" id="newBtn" data-i18n="newMeeting">＋ 새 회의</button>
+      <div class="usage-badge" id="usageBadge"><span class="dot-ico"></span><span id="usageBadgeText">-</span></div>
+    </div>
+  </div>
+
+  <div class="grid">
+    <!-- LEFT: Recorder + Transcript -->
+    <div>
+      <div class="card">
+        <div class="card-head">
+          <div class="card-title">🎙️ <span data-i18n="voiceInputTitle">음성 입력</span></div>
+          <span class="eyebrow" id="modeTag" data-i18n="modeWaiting">받아쓰기 대기</span>
+        </div>
+
+        <label class="field-label" data-i18n="titleInputLabel">회의 제목 (선택)</label>
+        <input class="meta-input" id="titleInput" data-i18n-ph="titleInputPlaceholder" placeholder="예: 7월 5주차 마케팅 정기회의" style="margin-bottom:16px;">
+
+        <div class="recorder">
+          <div class="mic-wrap">
+            <div class="mic-ring" id="micRing"></div>
+            <button class="mic-btn" id="micBtn" title="mic">
+              <svg id="micIcon" viewBox="0 0 24 24" fill="none"><path d="M12 2a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" fill="#0d0a1f"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3" stroke="#0d0a1f" stroke-width="2.2" stroke-linecap="round"/></svg>
+            </button>
+          </div>
+          <div class="wave" id="wave"><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+          <div class="rec-status" id="recStatus" data-i18n="micHintDefault">마이크 버튼을 눌러 실시간 음성인식을 시작하거나, 아래에 회의 내용을 직접 붙여넣으세요.</div>
+        </div>
+
+        <label class="field-label" data-i18n="transcriptLabel">회의 내용 (실시간 인식 결과가 여기 쌓입니다 · 직접 입력/수정 가능)</label>
+        <textarea class="transcript-box" id="transcriptBox" data-i18n-ph="transcriptPlaceholder" placeholder="예) 김대리: 이번 주 캠페인 성과 리뷰부터 시작하겠습니다..."></textarea>
+
+        <div class="action-row">
+          <button class="btn btn-ghost btn-sm" id="clearBtn" data-i18n="clearBtn">지우기</button>
+          <button class="btn btn-primary" id="summarizeBtn">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1" stroke="#0d0a1f" stroke-width="2" stroke-linecap="round"/></svg>
+            <span data-i18n="summarizeBtn">AI 요약 생성</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT: Summary + Calendar + History -->
+    <div>
+      <div class="card" id="summaryCard">
+        <div class="card-head">
+          <div class="card-title">📋 <span data-i18n="summaryCardTitle">회의록</span></div>
+          <div id="summaryActions" style="display:none; gap:8px;">
+            <button class="btn btn-ghost btn-sm" id="copyBtn" data-i18n="copyBtn">복사</button>
+            <button class="btn btn-ghost btn-sm" id="downloadBtn" data-i18n="downloadBtn">TXT 다운로드</button>
+          </div>
+        </div>
+        <div id="summaryBody"></div>
+      </div>
+
+      <div class="card" style="padding: 16px 18px;">
+        <div class="card-head" style="margin-bottom:10px;">
+          <div class="card-title" style="font-size:13px;">📅 <span data-i18n="calendarTitle">회의 캘린더</span></div>
+        </div>
+        <div class="cal-head">
+          <div class="cal-nav">
+            <button id="calPrev">‹</button>
+            <button id="calNext">›</button>
+          </div>
+          <div class="cal-month-label" id="calMonthLabel">-</div>
+          <div style="width:52px;"></div>
+        </div>
+        <div class="cal-grid" id="calGrid"></div>
+        <div class="cal-filter-row" id="calFilterRow" style="display:none;">
+          <span id="calFilterLabel"></span>
+          <button id="calClearFilter" data-i18n="clearFilter">필터 해제</button>
+        </div>
+      </div>
+
+      <div class="card" style="padding: 26px 26px 28px; min-height: 420px;">
+        <div class="card-head">
+          <div class="card-title" style="font-size:17px;">🕓 <span data-i18n="historyTitle">회의 기록</span></div>
+        </div>
+        <div id="historyContainer">
+          <div class="history-empty" data-i18n="historyEmpty">아직 저장된 회의록이 없습니다.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="paywall-overlay hidden" id="paywallOverlay">
+  <div class="paywall-card">
+
+    <div id="paywallStepLogin">
+      <div class="paywall-icon">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M12 15a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3Z" stroke="#ff5d3a" stroke-width="1.8"/><path d="M6 10v2a6 6 0 0 0 12 0v-2M12 18v3" stroke="#ff5d3a" stroke-width="1.8" stroke-linecap="round"/><path d="M9 3l1.5 1.5M15 3l-1.5 1.5" stroke="#ff5d3a" stroke-width="1.8" stroke-linecap="round"/></svg>
+      </div>
+      <h3 data-i18n="paywallTitle">무료 이용 횟수를 모두 사용했어요</h3>
+      <p data-i18n="paywallDesc">계속 사용하시려면 Google 계정으로 로그인하고 요금제를 선택해주세요.</p>
+      <button class="google-btn" id="googleLoginBtn">
+        <svg viewBox="0 0 48 48"><path fill="#4285F4" d="M45.1 24.5c0-1.6-.1-3.1-.4-4.6H24v9.1h11.9c-.5 2.8-2.1 5.2-4.4 6.8v5.6h7.1c4.2-3.8 6.5-9.5 6.5-16.9Z"/><path fill="#34A853" d="M24 46c5.9 0 10.9-2 14.5-5.3l-7.1-5.6c-2 1.3-4.5 2.1-7.4 2.1-5.7 0-10.5-3.8-12.2-9H4.5v5.7C8.1 41 15.4 46 24 46Z"/><path fill="#FBBC05" d="M11.8 27.9c-.4-1.3-.7-2.6-.7-4s.3-2.7.7-4v-5.7H4.5C3 17.1 2 20.4 2 24s1 6.9 2.5 9.8l7.3-5.9Z"/><path fill="#EA4335" d="M24 10.1c3.2 0 6.1 1.1 8.4 3.3l6.3-6.3C34.9 3.5 29.9 1.5 24 1.5 15.4 1.5 8.1 6.5 4.5 14.1l7.3 5.7c1.7-5.2 6.5-9.7 12.2-9.7Z"/></svg>
+        <span id="googleBtnLabel" data-i18n="continueWithGoogle">Google로 계속하기</span>
+      </button>
+      <div class="demo-note" data-i18n="paywallDemoNote">(데모) 실제 서비스에서는 Google OAuth로 연결됩니다</div>
+    </div>
+
+    <div id="paywallStepPlans" class="hidden">
+      <h3 data-i18n="choosePlanTitle">요금제를 선택하세요</h3>
+      <p id="loggedInAsLine" style="font-size:12px; color:var(--text-faint); margin-top:-14px; margin-bottom:18px;"></p>
+      <div class="plan-grid">
+        <div class="plan-card" data-plan="starter">
+          <div class="plan-name" data-i18n="planStarterName">Starter</div>
+          <div class="plan-price" data-i18n="planStarterPrice">₩19,900/월 · 월 15건</div>
+          <div class="plan-desc" data-i18n="planStarterDesc">개인/프리랜서에게 적합</div>
+        </div>
+        <div class="plan-card recommended" data-plan="pro">
+          <div class="plan-badge">RECOMMENDED</div>
+          <div class="plan-name" data-i18n="planProName">Pro</div>
+          <div class="plan-price" data-i18n="planProPrice">₩49,000/월 · 월 60건 + 캘린더</div>
+          <div class="plan-desc" data-i18n="planProDesc">팀장/PM급, 정기 회의 다수</div>
+        </div>
+        <div class="plan-card" data-plan="team">
+          <div class="plan-name" data-i18n="planTeamName">Team</div>
+          <div class="plan-price" data-i18n="planTeamPrice">시트당 ₩39,000/월 (최소 3시트)</div>
+          <div class="plan-desc" data-i18n="planTeamDesc">팀 공용 캘린더 및 공유 회의록</div>
+        </div>
+      </div>
+      <p style="font-size:11.5px; color:var(--text-faint); margin:14px 0 8px;" data-i18n="businessNote">대규모 조직이라면 별도 협의가 가능한 Business 플랜을 문의해보세요.</p>
+      <button class="back-link" id="paywallBackBtn" data-i18n="backBtn">← 뒤로</button>
+    </div>
+
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+  const $ = (id) => document.getElementById(id);
+
+  /* ================= i18n ================= */
+  const LANGS = [
+    {code:'ko', label:'한국어'},
+    {code:'en', label:'EN'},
+    {code:'ja', label:'日本語'},
+    {code:'zh', label:'中文'},
+    {code:'es', label:'Español'},
+    {code:'pt', label:'Português'},
+    {code:'de', label:'Deutsch'}
+  ];
+  const LOCALE_MAP = {ko:'ko-KR', en:'en-US', ja:'ja-JP', zh:'zh-CN', es:'es-ES', pt:'pt-BR', de:'de-DE'};
+  const SUMMARY_LANG_NAME = {ko:'한국어', en:'English', ja:'日本語', zh:'简体中文', es:'Español', pt:'Português (Brasil)', de:'Deutsch'};
+
+  const TR = {
+    ko: {
+      tagline: "회의는 말하고, 정리는 AI가",
+      newMeeting: "＋ 새 회의",
+      loginTitle: "VoxBrief에 오신 것을 환영해요",
+      loginSubtitle: "이름을 입력하고 바로 시작하세요",
+      namePlaceholder: "이름",
+      emailPlaceholder: "이메일 (선택)",
+      startBtn: "시작하기",
+      logout: "로그아웃",
+      voiceInputTitle: "음성 입력",
+      modeWaiting: "받아쓰기 대기",
+      modeListening: "듣는 중…",
+      titleInputLabel: "회의 제목 (선택)",
+      titleInputPlaceholder: "예: 7월 5주차 마케팅 정기회의",
+      micHintDefault: "마이크 버튼을 눌러 실시간 음성인식을 시작하거나, 아래에 회의 내용을 직접 붙여넣으세요.",
+      micHintListening: "말씀하시면 실시간으로 받아쓰기됩니다. 다시 누르면 중지합니다.",
+      micHintUnsupported: "이 브라우저/환경은 실시간 음성인식을 지원하지 않아요. 아래 텍스트 상자에 직접 입력하거나 붙여넣어 주세요.",
+      micHintDenied: "마이크 권한이 차단되어 있어요. 브라우저 설정에서 허용하거나, 아래에 텍스트를 직접 붙여넣어 주세요.",
+      micHintErrorPrefix: "음성인식 중 오류가 발생했어요",
+      micHintIdle: "마이크 버튼을 눌러 실시간 음성인식을 시작하거나, 위 텍스트 상자를 직접 편집하세요.",
+      transcriptLabel: "회의 내용 (실시간 인식 결과가 여기 쌓입니다 · 직접 입력/수정 가능)",
+      transcriptPlaceholder: "예) 김대리: 이번 주 캠페인 성과 리뷰부터 시작하겠습니다...",
+      clearBtn: "지우기",
+      summarizeBtn: "AI 요약 생성",
+      summaryCardTitle: "회의록",
+      copyBtn: "복사",
+      downloadBtn: "TXT 다운로드",
+      emptyStateText: "왼쪽에 회의 내용을 입력하고 \"AI 요약 생성\"을 누르면 정리된 회의록이 여기에 나타납니다.",
+      loadingText: "AI가 회의록을 정리하고 있어요…",
+      errorText: "요약 생성 중 문제가 발생했어요. 잠시 후 다시 시도해 주세요.",
+      noInputToast: "먼저 회의 내용을 입력해 주세요",
+      doneToast: "회의록이 생성되었어요",
+      copiedToast: "클립보드에 복사했어요",
+      copyFailToast: "복사에 실패했어요",
+      downloadToast: "TXT 파일을 다운로드했어요",
+      calendarTitle: "회의 캘린더",
+      historyTitle: "회의 기록",
+      historyEmpty: "아직 저장된 회의록이 없습니다.",
+      historyLoadFail: "저장된 회의록을 불러올 수 없습니다.",
+      loadedToast: "불러왔어요",
+      loadFailToast: "불러오기에 실패했어요",
+      sectionAgenda: "주요 논의", sectionDecisions: "결정 사항", sectionActions: "액션 아이템",
+      sectionIssues: "미해결 쟁점", sectionFollowup: "후속 회의",
+      followupNeeded: "필요", followupNotNeeded: "불필요",
+      followupNoneText: "별도 후속 회의가 필요하지 않습니다.",
+      tableOwner: "담당자", tableTask: "할 일", tableDue: "마감일",
+      noAgenda: "기록된 논의 안건이 없습니다.", noDecisions: "확정된 결정 사항이 없습니다.",
+      noActions: "액션 아이템이 없습니다.", noIssues: "미해결 쟁점이 없습니다.",
+      clearFilter: "필터 해제", filterShowing: "선택한 날짜만 보기",
+      freeBadgeLabel: "무료 체험", subscribedBadge: "Pro 이용중",
+      paywallTitle: "무료 이용 횟수를 모두 사용했어요",
+      paywallDesc: "계속 사용하시려면 Google 계정으로 로그인하고 요금제를 선택해주세요.",
+      continueWithGoogle: "Google로 계속하기",
+      paywallDemoNote: "(데모) 실제 서비스에서는 Google OAuth로 연결됩니다",
+      choosePlanTitle: "요금제를 선택하세요",
+      planStarterName: "Starter", planStarterPrice: "₩19,900/월 · 월 15건", planStarterDesc: "개인/프리랜서에게 적합",
+      planProName: "Pro", planProPrice: "₩49,000/월 · 월 60건 + 캘린더", planProDesc: "팀장/PM급, 정기 회의 다수",
+      planTeamName: "Team", planTeamPrice: "시트당 ₩39,000/월 (최소 3시트)", planTeamDesc: "팀 공용 캘린더 및 공유 회의록",
+      backBtn: "← 뒤로", subscribeSuccessToast: "구독이 완료되었어요 (데모)",
+      businessNote: "대규모 조직이라면 별도 협의가 가능한 Business 플랜을 문의해보세요.",
+      listenUsageLabel: "🔊 사용법 듣기", usageGuideText: "VoxBrief 사용법을 안내해 드릴게요. 먼저 마이크 버튼을 눌러 실시간 음성인식을 시작하거나, 회의 내용을 아래 텍스트 상자에 직접 붙여넣으세요. 회의 제목을 입력해두면 나중에 찾기 편해요. 내용을 다 입력했다면 'AI 요약 생성' 버튼을 눌러주세요. 몇 초 후 핵심 요약, 주요 논의, 결정 사항, 액션 아이템, 미해결 쟁점, 후속 회의 필요 여부까지 정리된 회의록이 오른쪽에 나타납니다. 완성된 회의록은 복사하거나 TXT 파일로 다운로드할 수 있어요. 아래 캘린더에서 날짜를 선택하면 그날 저장된 회의록만 볼 수 있고, 회의 기록 목록에서 언제든 예전 회의록을 다시 불러올 수 있습니다. 무료로 세 번까지 사용할 수 있고, 그 이후에는 구글 로그인 후 스타터, 프로, 팀 요금제 중 하나를 선택하면 계속 이용할 수 있어요. 대규모 조직이라면 별도 문의도 가능합니다. 언어는 오른쪽 위에서 언제든 바꿀 수 있고, 이 안내도 선택한 언어의 음성으로 다시 들을 수 있어요."
+    },
+    en: {
+      tagline: "Speak the meeting. Let AI write it up.",
+      newMeeting: "＋ New Meeting",
+      loginTitle: "Welcome to VoxBrief",
+      loginSubtitle: "Enter your name to get started",
+      namePlaceholder: "Name",
+      emailPlaceholder: "Email (optional)",
+      startBtn: "Get Started",
+      logout: "Log out",
+      voiceInputTitle: "Voice Input",
+      modeWaiting: "Idle",
+      modeListening: "Listening…",
+      titleInputLabel: "Meeting title (optional)",
+      titleInputPlaceholder: "e.g. Weekly marketing sync — Jul week 5",
+      micHintDefault: "Tap the mic to start live transcription, or paste your meeting notes below.",
+      micHintListening: "Speak naturally — it's being transcribed live. Tap again to stop.",
+      micHintUnsupported: "Live transcription isn't supported in this browser/environment. Please type or paste your meeting notes below instead.",
+      micHintDenied: "Microphone access is blocked. Allow it in your browser settings, or paste your notes below.",
+      micHintErrorPrefix: "A speech recognition error occurred",
+      micHintIdle: "Tap the mic to start live transcription, or edit the text box above directly.",
+      transcriptLabel: "Meeting content (live transcript appears here · fully editable)",
+      transcriptPlaceholder: "e.g. Alex: Let's start with this week's campaign performance review...",
+      clearBtn: "Clear",
+      summarizeBtn: "Generate AI Summary",
+      summaryCardTitle: "Meeting Minutes",
+      copyBtn: "Copy",
+      downloadBtn: "Download TXT",
+      emptyStateText: "Enter your meeting content on the left and tap \"Generate AI Summary\" — the organized minutes will appear here.",
+      loadingText: "AI is organizing your meeting minutes…",
+      errorText: "Something went wrong generating the summary. Please try again shortly.",
+      noInputToast: "Please enter meeting content first",
+      doneToast: "Meeting minutes generated",
+      copiedToast: "Copied to clipboard",
+      copyFailToast: "Copy failed",
+      downloadToast: "TXT file downloaded",
+      calendarTitle: "Meeting Calendar",
+      historyTitle: "Meeting History",
+      historyEmpty: "No meeting minutes saved yet.",
+      historyLoadFail: "Couldn't load saved meeting minutes.",
+      loadedToast: "Loaded",
+      loadFailToast: "Failed to load",
+      sectionAgenda: "Key Discussion", sectionDecisions: "Decisions", sectionActions: "Action Items",
+      sectionIssues: "Open Issues", sectionFollowup: "Follow-up Meeting",
+      followupNeeded: "Needed", followupNotNeeded: "Not needed",
+      followupNoneText: "No follow-up meeting is needed.",
+      tableOwner: "Owner", tableTask: "Task", tableDue: "Due",
+      noAgenda: "No discussion items recorded.", noDecisions: "No decisions confirmed.",
+      noActions: "No action items.", noIssues: "No open issues.",
+      clearFilter: "Clear filter", filterShowing: "Showing selected date only",
+      freeBadgeLabel: "Free trial", subscribedBadge: "Pro plan active",
+      paywallTitle: "You've used all your free summaries",
+      paywallDesc: "Sign in with Google and choose a plan to keep going.",
+      continueWithGoogle: "Continue with Google",
+      paywallDemoNote: "(Demo) A real deployment connects this to Google OAuth",
+      choosePlanTitle: "Choose a plan",
+      planStarterName: "Starter", planStarterPrice: "$15/mo · 15 summaries/mo", planStarterDesc: "Good for individuals & freelancers",
+      planProName: "Pro", planProPrice: "$35/mo · 60 summaries/mo + calendar", planProDesc: "For team leads running frequent meetings",
+      planTeamName: "Team", planTeamPrice: "$28/seat/mo (3-seat minimum)", planTeamDesc: "Shared team calendar & meeting notes",
+      backBtn: "← Back", subscribeSuccessToast: "Subscription activated (demo)",
+      businessNote: "Running a larger organization? Ask about our custom-priced Business plan.",
+      listenUsageLabel: "🔊 Listen to guide", usageGuideText: "Here's how VoxBrief works. Tap the mic button to start live transcription, or paste your meeting notes into the text box below. Adding a title makes it easier to find later. Once your content is in, tap 'Generate AI Summary'. Within seconds you'll get a summary, key discussion points, decisions, action items, open issues, and whether a follow-up meeting is needed. You can copy the result or download it as a TXT file. Use the calendar below to jump to meetings from a specific date, or browse your full meeting history anytime. You get three free summaries; after that, sign in with Google and choose the Starter, Pro, or Team plan to keep going — larger organizations can also reach out about a custom Business plan. You can switch languages anytime from the top right, and hear this guide again in your chosen language."
+    },
+    ja: {
+      tagline: "話すだけで、議事録はAIが。",
+      newMeeting: "＋ 新しい会議",
+      loginTitle: "VoxBriefへようこそ",
+      loginSubtitle: "お名前を入力してすぐに始めましょう",
+      namePlaceholder: "お名前",
+      emailPlaceholder: "メール（任意）",
+      startBtn: "はじめる",
+      logout: "ログアウト",
+      voiceInputTitle: "音声入力",
+      modeWaiting: "待機中",
+      modeListening: "聞き取り中…",
+      titleInputLabel: "会議タイトル（任意）",
+      titleInputPlaceholder: "例: 7月第5週 マーケティング定例会議",
+      micHintDefault: "マイクボタンを押すとリアルタイム音声認識が始まります。下のテキストボックスに直接貼り付けることもできます。",
+      micHintListening: "話すとリアルタイムで文字起こしされます。もう一度押すと停止します。",
+      micHintUnsupported: "このブラウザ・環境ではリアルタイム音声認識に対応していません。下のテキストボックスに直接入力・貼り付けしてください。",
+      micHintDenied: "マイクへのアクセスがブロックされています。ブラウザ設定で許可するか、下にテキストを貼り付けてください。",
+      micHintErrorPrefix: "音声認識中にエラーが発生しました",
+      micHintIdle: "マイクボタンを押すとリアルタイム音声認識が始まります。上のテキストボックスも直接編集できます。",
+      transcriptLabel: "会議内容（リアルタイム認識結果がここに追加されます・直接編集可能）",
+      transcriptPlaceholder: "例) 田中: 今週のキャンペーン成果のレビューから始めます...",
+      clearBtn: "クリア",
+      summarizeBtn: "AI要約を生成",
+      summaryCardTitle: "議事録",
+      copyBtn: "コピー",
+      downloadBtn: "TXTダウンロード",
+      emptyStateText: "左側に会議内容を入力し「AI要約を生成」を押すと、整理された議事録がここに表示されます。",
+      loadingText: "AIが議事録を整理しています…",
+      errorText: "要約の生成中に問題が発生しました。しばらくしてから再試行してください。",
+      noInputToast: "先に会議内容を入力してください",
+      doneToast: "議事録を生成しました",
+      copiedToast: "クリップボードにコピーしました",
+      copyFailToast: "コピーに失敗しました",
+      downloadToast: "TXTファイルをダウンロードしました",
+      calendarTitle: "会議カレンダー",
+      historyTitle: "会議履歴",
+      historyEmpty: "保存された議事録はまだありません。",
+      historyLoadFail: "保存された議事録を読み込めませんでした。",
+      loadedToast: "読み込みました",
+      loadFailToast: "読み込みに失敗しました",
+      sectionAgenda: "主な議題", sectionDecisions: "決定事項", sectionActions: "アクションアイテム",
+      sectionIssues: "未解決の課題", sectionFollowup: "フォローアップ会議",
+      followupNeeded: "必要", followupNotNeeded: "不要",
+      followupNoneText: "別途フォローアップ会議は不要です。",
+      tableOwner: "担当者", tableTask: "タスク", tableDue: "期限",
+      noAgenda: "記録された議題はありません。", noDecisions: "確定した決定事項はありません。",
+      noActions: "アクションアイテムはありません。", noIssues: "未解決の課題はありません。",
+      clearFilter: "フィルター解除", filterShowing: "選択した日付のみ表示",
+      freeBadgeLabel: "無料体験", subscribedBadge: "Pro利用中",
+      paywallTitle: "無料利用回数をすべて使い切りました",
+      paywallDesc: "引き続きご利用いただくには、Googleアカウントでログインしプランを選択してください。",
+      continueWithGoogle: "Googleで続ける",
+      paywallDemoNote: "（デモ）実際のサービスではGoogle OAuthに接続されます",
+      choosePlanTitle: "プランを選択してください",
+      planStarterName: "Starter", planStarterPrice: "¥2,200/月・月15件", planStarterDesc: "個人・フリーランス向け",
+      planProName: "Pro", planProPrice: "¥5,200/月・月60件＋カレンダー", planProDesc: "定例会議が多いチームリーダー向け",
+      planTeamName: "Team", planTeamPrice: "1席あたり¥3,800/月（最小3席）", planTeamDesc: "チーム共有カレンダー・議事録",
+      backBtn: "← 戻る", subscribeSuccessToast: "サブスクリプションが完了しました（デモ）",
+      businessNote: "大規模組織の方は、個別見積もり可能なBusinessプランについてお問い合わせください。",
+      listenUsageLabel: "🔊 使い方を聞く", usageGuideText: "VoxBriefの使い方をご案内します。マイクボタンを押すとリアルタイム音声認識が始まります。または会議内容を下のテキストボックスに直接貼り付けてもかまいません。タイトルを入力しておくと後で探しやすくなります。内容を入力したら「AI要約を生成」を押してください。数秒で要約、主な議題、決定事項、アクションアイテム、未解決の課題、フォローアップ会議の要否まで整理された議事録が表示されます。結果はコピーするかTXTファイルとしてダウンロードできます。下のカレンダーで日付を選べばその日の議事録だけを確認でき、履歴一覧からいつでも過去の議事録を呼び出せます。無料で3回まで利用でき、その後はGoogleでログインしてStarter、Pro、Teamのいずれかのプランを選べば継続利用できます。大規模組織はBusinessプランについて個別にお問い合わせいただけます。言語は右上からいつでも切り替えられ、この案内も選んだ言語の音声で再生できます。"
+    },
+    zh: {
+      tagline: "开会只管说,纪要交给AI。",
+      newMeeting: "＋ 新建会议",
+      loginTitle: "欢迎使用 VoxBrief",
+      loginSubtitle: "输入姓名即可开始",
+      namePlaceholder: "姓名",
+      emailPlaceholder: "邮箱(可选)",
+      startBtn: "开始使用",
+      logout: "退出登录",
+      voiceInputTitle: "语音输入",
+      modeWaiting: "待机中",
+      modeListening: "聆听中…",
+      titleInputLabel: "会议主题(可选)",
+      titleInputPlaceholder: "例: 7月第5周 市场部例会",
+      micHintDefault: "点击麦克风按钮开始实时语音识别,或在下方直接粘贴会议内容。",
+      micHintListening: "开始说话即可实时转写文字。再次点击可停止。",
+      micHintUnsupported: "当前浏览器/环境不支持实时语音识别。请在下方文本框中直接输入或粘贴会议内容。",
+      micHintDenied: "麦克风权限被阻止。请在浏览器设置中允许,或在下方直接粘贴文本。",
+      micHintErrorPrefix: "语音识别时发生错误",
+      micHintIdle: "点击麦克风按钮开始实时语音识别,或直接编辑上方文本框。",
+      transcriptLabel: "会议内容(实时识别结果将显示于此 · 可直接编辑)",
+      transcriptPlaceholder: "例如) 张经理: 我们先review一下本周的活动效果...",
+      clearBtn: "清空",
+      summarizeBtn: "生成AI摘要",
+      summaryCardTitle: "会议纪要",
+      copyBtn: "复制",
+      downloadBtn: "下载TXT",
+      emptyStateText: "在左侧输入会议内容并点击「生成AI摘要」,整理好的会议纪要将显示在这里。",
+      loadingText: "AI正在整理会议纪要…",
+      errorText: "生成摘要时出现问题,请稍后再试。",
+      noInputToast: "请先输入会议内容",
+      doneToast: "会议纪要已生成",
+      copiedToast: "已复制到剪贴板",
+      copyFailToast: "复制失败",
+      downloadToast: "TXT文件已下载",
+      calendarTitle: "会议日历",
+      historyTitle: "会议记录",
+      historyEmpty: "暂无保存的会议纪要。",
+      historyLoadFail: "无法加载已保存的会议纪要。",
+      loadedToast: "已加载",
+      loadFailToast: "加载失败",
+      sectionAgenda: "主要讨论", sectionDecisions: "决定事项", sectionActions: "行动项",
+      sectionIssues: "未解决问题", sectionFollowup: "后续会议",
+      followupNeeded: "需要", followupNotNeeded: "不需要",
+      followupNoneText: "无需另行安排后续会议。",
+      tableOwner: "负责人", tableTask: "任务", tableDue: "截止日期",
+      noAgenda: "暂无记录的讨论议题。", noDecisions: "暂无确定的决定事项。",
+      noActions: "暂无行动项。", noIssues: "暂无未解决问题。",
+      clearFilter: "清除筛选", filterShowing: "仅显示所选日期",
+      freeBadgeLabel: "免费试用", subscribedBadge: "Pro会员中",
+      paywallTitle: "免费次数已用完",
+      paywallDesc: "如需继续使用,请使用Google账号登录并选择套餐。",
+      continueWithGoogle: "使用Google继续",
+      paywallDemoNote: "(演示) 实际服务中将接入Google OAuth",
+      choosePlanTitle: "请选择套餐",
+      planStarterName: "Starter", planStarterPrice: "¥89/月 · 每月15次", planStarterDesc: "适合个人/自由职业者",
+      planProName: "Pro", planProPrice: "¥199/月 · 每月60次 + 日历", planProDesc: "适合会议较多的团队负责人",
+      planTeamName: "Team", planTeamPrice: "¥159/席/月(最少3席)", planTeamDesc: "团队共享日历与会议纪要",
+      backBtn: "← 返回", subscribeSuccessToast: "订阅已完成(演示)",
+      businessNote: "大型组织可咨询可定制报价的Business套餐。",
+      listenUsageLabel: "🔊 听取使用说明", usageGuideText: "下面介绍VoxBrief的使用方法。点击麦克风按钮即可开始实时语音识别,也可以直接把会议内容粘贴到下方文本框。填写标题方便日后查找。输入完成后点击「生成AI摘要」,几秒后即可看到摘要、主要讨论、决定事项、行动项、未解决问题以及是否需要后续会议。生成结果可以复制,也可以下载为TXT文件。在下方日历中选择日期,即可只查看当天的会议纪要;在会议记录列表中随时可以重新打开以往的纪要。免费可使用三次,之后使用Google登录并选择Starter、Pro或Team套餐即可继续使用,大型组织也可以咨询定制的Business套餐。语言可随时在右上角切换,本使用说明也可以用所选语言重新播放。"
+    },
+    es: {
+      tagline: "Habla la reunión. Deja que la IA la resuma.",
+      newMeeting: "＋ Nueva reunión",
+      loginTitle: "Bienvenido a VoxBrief", loginSubtitle: "Ingresa tu nombre para empezar",
+      namePlaceholder: "Nombre", emailPlaceholder: "Correo (opcional)",
+      startBtn: "Empezar", logout: "Cerrar sesión",
+      voiceInputTitle: "Entrada de voz", modeWaiting: "En espera", modeListening: "Escuchando…",
+      titleInputLabel: "Título de la reunión (opcional)",
+      titleInputPlaceholder: "ej. Reunión semanal de marketing",
+      micHintDefault: "Toca el micrófono para iniciar la transcripción en vivo, o pega el contenido de la reunión abajo.",
+      micHintListening: "Habla con naturalidad — se transcribe en vivo. Toca de nuevo para detener.",
+      micHintUnsupported: "Este navegador/entorno no admite el reconocimiento de voz en vivo. Escribe o pega el contenido de la reunión abajo.",
+      micHintDenied: "El acceso al micrófono está bloqueado. Permítelo en la configuración del navegador o pega el texto abajo.",
+      micHintErrorPrefix: "Ocurrió un error de reconocimiento de voz",
+      micHintIdle: "Toca el micrófono para iniciar la transcripción en vivo, o edita el cuadro de texto de arriba.",
+      transcriptLabel: "Contenido de la reunión (la transcripción en vivo aparece aquí · totalmente editable)",
+      transcriptPlaceholder: "ej. Ana: Empecemos con la revisión de resultados de la campaña de esta semana...",
+      clearBtn: "Borrar", summarizeBtn: "Generar resumen con IA", summaryCardTitle: "Acta de la reunión",
+      copyBtn: "Copiar", downloadBtn: "Descargar TXT",
+      emptyStateText: "Ingresa el contenido de la reunión a la izquierda y toca «Generar resumen con IA» — el acta organizada aparecerá aquí.",
+      loadingText: "La IA está organizando el acta de la reunión…",
+      errorText: "Ocurrió un problema al generar el resumen. Inténtalo de nuevo en un momento.",
+      noInputToast: "Primero ingresa el contenido de la reunión",
+      doneToast: "Acta de la reunión generada", copiedToast: "Copiado al portapapeles",
+      copyFailToast: "Error al copiar", downloadToast: "Archivo TXT descargado",
+      calendarTitle: "Calendario de reuniones", historyTitle: "Historial de reuniones",
+      historyEmpty: "Aún no hay actas guardadas.", historyLoadFail: "No se pudieron cargar las actas guardadas.",
+      loadedToast: "Cargado", loadFailToast: "Error al cargar",
+      sectionAgenda: "Puntos tratados", sectionDecisions: "Decisiones", sectionActions: "Tareas pendientes",
+      sectionIssues: "Temas sin resolver", sectionFollowup: "Reunión de seguimiento",
+      followupNeeded: "Necesaria", followupNotNeeded: "No necesaria",
+      followupNoneText: "No se necesita una reunión de seguimiento.",
+      tableOwner: "Responsable", tableTask: "Tarea", tableDue: "Fecha límite",
+      noAgenda: "No se registraron puntos de discusión.", noDecisions: "No hay decisiones confirmadas.",
+      noActions: "No hay tareas pendientes.", noIssues: "No hay temas sin resolver.",
+      clearFilter: "Quitar filtro", filterShowing: "Mostrando solo la fecha seleccionada",
+      freeBadgeLabel: "Prueba gratuita", subscribedBadge: "Plan Pro activo",
+      paywallTitle: "Has usado todos tus resúmenes gratuitos",
+      paywallDesc: "Inicia sesión con Google y elige un plan para continuar.",
+      continueWithGoogle: "Continuar con Google",
+      paywallDemoNote: "(Demo) Una implementación real conecta esto con Google OAuth",
+      choosePlanTitle: "Elige un plan",
+      planStarterName: "Starter", planStarterPrice: "€14/mes · 15 resúmenes/mes", planStarterDesc: "Ideal para autónomos e individuos",
+      planProName: "Pro", planProPrice: "€32/mes · 60 resúmenes/mes + calendario", planProDesc: "Para líderes de equipo con reuniones frecuentes",
+      planTeamName: "Team", planTeamPrice: "€26/asiento/mes (mínimo 3 asientos)", planTeamDesc: "Calendario y actas compartidas del equipo",
+      backBtn: "← Atrás", subscribeSuccessToast: "Suscripción activada (demo)",
+      businessNote: "¿Organización grande? Consulta nuestro plan Business con precio a medida.",
+      listenUsageLabel: "🔊 Escuchar guía", usageGuideText: "Así funciona VoxBrief. Toca el micrófono para iniciar la transcripción en vivo, o pega el contenido de la reunión en el cuadro de texto de abajo. Ponerle un título te ayudará a encontrarla después. Cuando termines, toca «Generar resumen con IA». En segundos verás un resumen, los puntos tratados, las decisiones, las tareas pendientes, los temas sin resolver y si hace falta una reunión de seguimiento. Puedes copiar el resultado o descargarlo como TXT. Usa el calendario de abajo para ver las reuniones de una fecha concreta, o revisa todo el historial cuando quieras. Tienes tres resúmenes gratis; después, inicia sesión con Google y elige el plan Starter, Pro o Team para seguir usándolo — las organizaciones grandes también pueden consultar el plan Business a medida. Puedes cambiar de idioma arriba a la derecha en cualquier momento, y volver a escuchar esta guía en el idioma que elijas."
+    },
+    pt: {
+      tagline: "Fale a reunião. Deixe a IA escrever a ata.",
+      newMeeting: "＋ Nova reunião",
+      loginTitle: "Bem-vindo ao VoxBrief", loginSubtitle: "Digite seu nome para começar",
+      namePlaceholder: "Nome", emailPlaceholder: "E-mail (opcional)",
+      startBtn: "Começar", logout: "Sair",
+      voiceInputTitle: "Entrada de voz", modeWaiting: "Aguardando", modeListening: "Ouvindo…",
+      titleInputLabel: "Título da reunião (opcional)",
+      titleInputPlaceholder: "ex.: Reunião semanal de marketing",
+      micHintDefault: "Toque no microfone para iniciar a transcrição ao vivo, ou cole o conteúdo da reunião abaixo.",
+      micHintListening: "Fale naturalmente — a transcrição acontece em tempo real. Toque novamente para parar.",
+      micHintUnsupported: "Este navegador/ambiente não suporta reconhecimento de voz ao vivo. Digite ou cole o conteúdo da reunião abaixo.",
+      micHintDenied: "O acesso ao microfone está bloqueado. Permita nas configurações do navegador ou cole o texto abaixo.",
+      micHintErrorPrefix: "Ocorreu um erro no reconhecimento de voz",
+      micHintIdle: "Toque no microfone para iniciar a transcrição ao vivo, ou edite a caixa de texto acima.",
+      transcriptLabel: "Conteúdo da reunião (a transcrição ao vivo aparece aqui · totalmente editável)",
+      transcriptPlaceholder: "ex.: Ana: Vamos começar com a revisão dos resultados da campanha desta semana...",
+      clearBtn: "Limpar", summarizeBtn: "Gerar resumo com IA", summaryCardTitle: "Ata da reunião",
+      copyBtn: "Copiar", downloadBtn: "Baixar TXT",
+      emptyStateText: "Digite o conteúdo da reunião à esquerda e toque em «Gerar resumo com IA» — a ata organizada aparecerá aqui.",
+      loadingText: "A IA está organizando a ata da reunião…",
+      errorText: "Ocorreu um problema ao gerar o resumo. Tente novamente em instantes.",
+      noInputToast: "Insira o conteúdo da reunião primeiro",
+      doneToast: "Ata da reunião gerada", copiedToast: "Copiado para a área de transferência",
+      copyFailToast: "Falha ao copiar", downloadToast: "Arquivo TXT baixado",
+      calendarTitle: "Calendário de reuniões", historyTitle: "Histórico de reuniões",
+      historyEmpty: "Nenhuma ata salva ainda.", historyLoadFail: "Não foi possível carregar as atas salvas.",
+      loadedToast: "Carregado", loadFailToast: "Falha ao carregar",
+      sectionAgenda: "Principais discussões", sectionDecisions: "Decisões", sectionActions: "Itens de ação",
+      sectionIssues: "Questões em aberto", sectionFollowup: "Reunião de acompanhamento",
+      followupNeeded: "Necessária", followupNotNeeded: "Não necessária",
+      followupNoneText: "Não é necessária uma reunião de acompanhamento.",
+      tableOwner: "Responsável", tableTask: "Tarefa", tableDue: "Prazo",
+      noAgenda: "Nenhum item de discussão registrado.", noDecisions: "Nenhuma decisão confirmada.",
+      noActions: "Nenhum item de ação.", noIssues: "Nenhuma questão em aberto.",
+      clearFilter: "Limpar filtro", filterShowing: "Mostrando apenas a data selecionada",
+      freeBadgeLabel: "Teste grátis", subscribedBadge: "Plano Pro ativo",
+      paywallTitle: "Você usou todos os seus resumos gratuitos",
+      paywallDesc: "Entre com o Google e escolha um plano para continuar.",
+      continueWithGoogle: "Continuar com o Google",
+      paywallDemoNote: "(Demo) Uma implementação real conecta isso ao Google OAuth",
+      choosePlanTitle: "Escolha um plano",
+      planStarterName: "Starter", planStarterPrice: "R$69/mês · 15 resumos/mês", planStarterDesc: "Ideal para autônomos e indivíduos",
+      planProName: "Pro", planProPrice: "R$159/mês · 60 resumos/mês + calendário", planProDesc: "Para líderes de equipe com reuniões frequentes",
+      planTeamName: "Team", planTeamPrice: "R$129/assento/mês (mínimo 3 assentos)", planTeamDesc: "Calendário e atas compartilhados da equipe",
+      backBtn: "← Voltar", subscribeSuccessToast: "Assinatura ativada (demo)",
+      businessNote: "Organização grande? Consulte nosso plano Business com preço sob medida.",
+      listenUsageLabel: "🔊 Ouvir instruções", usageGuideText: "Veja como o VoxBrief funciona. Toque no microfone para iniciar a transcrição ao vivo, ou cole o conteúdo da reunião na caixa de texto abaixo. Colocar um título ajuda a encontrar depois. Ao terminar, toque em «Gerar resumo com IA». Em segundos você verá um resumo, os principais pontos discutidos, decisões, itens de ação, questões em aberto e se é necessária uma reunião de acompanhamento. Você pode copiar o resultado ou baixá-lo como TXT. Use o calendário abaixo para ver as reuniões de uma data específica, ou consulte todo o histórico quando quiser. Você tem três resumos grátis; depois disso, entre com o Google e escolha o plano Starter, Pro ou Team para continuar — organizações maiores também podem consultar o plano Business sob medida. Você pode trocar de idioma a qualquer momento no canto superior direito, e ouvir este guia novamente no idioma escolhido."
+    },
+    de: {
+      tagline: "Sprich das Meeting. Die KI schreibt das Protokoll.",
+      newMeeting: "＋ Neues Meeting",
+      loginTitle: "Willkommen bei VoxBrief", loginSubtitle: "Gib deinen Namen ein, um zu starten",
+      namePlaceholder: "Name", emailPlaceholder: "E-Mail (optional)",
+      startBtn: "Loslegen", logout: "Abmelden",
+      voiceInputTitle: "Spracheingabe", modeWaiting: "Bereit", modeListening: "Hört zu…",
+      titleInputLabel: "Meeting-Titel (optional)",
+      titleInputPlaceholder: "z. B. Wöchentliches Marketing-Meeting",
+      micHintDefault: "Tippe auf das Mikrofon, um die Live-Transkription zu starten, oder füge den Meeting-Inhalt unten ein.",
+      micHintListening: "Sprich normal — es wird live transkribiert. Erneut tippen zum Stoppen.",
+      micHintUnsupported: "Dieser Browser/diese Umgebung unterstützt keine Live-Spracherkennung. Bitte gib den Meeting-Inhalt unten direkt ein oder füge ihn ein.",
+      micHintDenied: "Der Mikrofonzugriff ist blockiert. Erlaube ihn in den Browsereinstellungen oder füge den Text unten ein.",
+      micHintErrorPrefix: "Bei der Spracherkennung ist ein Fehler aufgetreten",
+      micHintIdle: "Tippe auf das Mikrofon, um die Live-Transkription zu starten, oder bearbeite das Textfeld oben direkt.",
+      transcriptLabel: "Meeting-Inhalt (Live-Transkript erscheint hier · vollständig bearbeitbar)",
+      transcriptPlaceholder: "z. B. Anna: Beginnen wir mit der Kampagnen-Ergebnisübersicht dieser Woche...",
+      clearBtn: "Leeren", summarizeBtn: "KI-Zusammenfassung erstellen", summaryCardTitle: "Meeting-Protokoll",
+      copyBtn: "Kopieren", downloadBtn: "TXT herunterladen",
+      emptyStateText: "Gib links den Meeting-Inhalt ein und tippe auf „KI-Zusammenfassung erstellen“ — das aufbereitete Protokoll erscheint hier.",
+      loadingText: "Die KI bereitet das Meeting-Protokoll auf…",
+      errorText: "Beim Erstellen der Zusammenfassung ist ein Problem aufgetreten. Bitte versuche es gleich noch einmal.",
+      noInputToast: "Bitte zuerst den Meeting-Inhalt eingeben",
+      doneToast: "Meeting-Protokoll erstellt", copiedToast: "In die Zwischenablage kopiert",
+      copyFailToast: "Kopieren fehlgeschlagen", downloadToast: "TXT-Datei heruntergeladen",
+      calendarTitle: "Meeting-Kalender", historyTitle: "Meeting-Verlauf",
+      historyEmpty: "Noch keine Protokolle gespeichert.", historyLoadFail: "Gespeicherte Protokolle konnten nicht geladen werden.",
+      loadedToast: "Geladen", loadFailToast: "Laden fehlgeschlagen",
+      sectionAgenda: "Wichtigste Diskussionspunkte", sectionDecisions: "Entscheidungen", sectionActions: "Aufgaben",
+      sectionIssues: "Offene Punkte", sectionFollowup: "Folgemeeting",
+      followupNeeded: "Erforderlich", followupNotNeeded: "Nicht erforderlich",
+      followupNoneText: "Es ist kein Folgemeeting erforderlich.",
+      tableOwner: "Verantwortlich", tableTask: "Aufgabe", tableDue: "Frist",
+      noAgenda: "Keine Diskussionspunkte erfasst.", noDecisions: "Keine Entscheidungen bestätigt.",
+      noActions: "Keine Aufgaben.", noIssues: "Keine offenen Punkte.",
+      clearFilter: "Filter entfernen", filterShowing: "Nur ausgewähltes Datum anzeigen",
+      freeBadgeLabel: "Kostenlose Testversion", subscribedBadge: "Pro-Plan aktiv",
+      paywallTitle: "Du hast alle kostenlosen Zusammenfassungen aufgebraucht",
+      paywallDesc: "Melde dich mit Google an und wähle einen Plan, um fortzufahren.",
+      continueWithGoogle: "Mit Google fortfahren",
+      paywallDemoNote: "(Demo) Eine echte Integration verbindet dies mit Google OAuth",
+      choosePlanTitle: "Wähle einen Plan",
+      planStarterName: "Starter", planStarterPrice: "14 €/Monat · 15 Zusammenfassungen/Monat", planStarterDesc: "Ideal für Einzelpersonen & Freiberufler",
+      planProName: "Pro", planProPrice: "32 €/Monat · 60 Zusammenfassungen/Monat + Kalender", planProDesc: "Für Teamleiter mit häufigen Meetings",
+      planTeamName: "Team", planTeamPrice: "26 €/Sitz/Monat (mind. 3 Sitze)", planTeamDesc: "Gemeinsamer Team-Kalender & Protokolle",
+      backBtn: "← Zurück", subscribeSuccessToast: "Abo aktiviert (Demo)",
+      businessNote: "Größere Organisation? Frag nach unserem individuell bepreisten Business-Plan.",
+      listenUsageLabel: "🔊 Anleitung anhören", usageGuideText: "So funktioniert VoxBrief. Tippe auf das Mikrofon, um die Live-Transkription zu starten, oder füge den Meeting-Inhalt unten in das Textfeld ein. Ein Titel hilft dir, das Meeting später wiederzufinden. Wenn der Inhalt vollständig ist, tippe auf „KI-Zusammenfassung erstellen“. Innerhalb weniger Sekunden erhältst du eine Zusammenfassung, die wichtigsten Diskussionspunkte, Entscheidungen, Aufgaben, offene Punkte und ob ein Folgemeeting nötig ist. Du kannst das Ergebnis kopieren oder als TXT-Datei herunterladen. Über den Kalender unten kannst du gezielt zu Meetings an einem bestimmten Tag springen oder jederzeit den gesamten Verlauf durchsehen. Du hast drei kostenlose Zusammenfassungen; danach melde dich mit Google an und wähle Starter, Pro oder Team, um weiterzumachen — größere Organisationen können auch nach dem individuellen Business-Plan fragen. Die Sprache kannst du oben rechts jederzeit wechseln und dir diese Anleitung erneut in deiner Sprache anhören."
+    }
+  };
+
+  let currentLang = 'ko';
+  function t(key){ return (TR[currentLang] && TR[currentLang][key]) || TR.ko[key] || key; }
+
+  function applyStaticTranslations(){
+    document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = t(el.getAttribute('data-i18n')); });
+    document.querySelectorAll('[data-i18n-ph]').forEach(el => { el.placeholder = t(el.getAttribute('data-i18n-ph')); });
+    if(!isRecording){
+      recStatus.classList.remove('err');
+      recStatus.textContent = t('micHintDefault');
+    }
+    modeTag.textContent = isRecording ? t('modeListening') : t('modeWaiting');
+    if(!currentSummary){ summaryBody.innerHTML = emptyStateHTML(); }
+    else { renderSummary(currentSummary); }
+    renderCalendar();
+    renderHistory();
+    if(typeof updateUsageBadge === 'function' && usageBadgeText){ updateUsageBadge(); }
+  }
+
+  function buildTopLangSwitch(){
+    const el = $('topLangSwitch');
+    el.innerHTML = LANGS.map(l => `<button data-lang="${l.code}" class="${l.code===currentLang?'active':''}">${l.code.toUpperCase()}</button>`).join('');
+    el.querySelectorAll('button').forEach(b => {
+      b.addEventListener('click', async () => {
+        currentLang = b.getAttribute('data-lang');
+        buildTopLangSwitch();
+        applyStaticTranslations();
+        try{ await window.storage.set('lang_pref', currentLang); }catch(e){}
+      });
+    });
+  }
+
+  /* ================= Elements ================= */
+  const appRoot = $('appRoot');
+  const micBtn = $('micBtn'), micRing = $('micRing'), wave = $('wave'), recStatus = $('recStatus'), modeTag = $('modeTag');
+  const transcriptBox = $('transcriptBox'), titleInput = $('titleInput');
+  const summarizeBtn = $('summarizeBtn'), clearBtn = $('clearBtn'), newBtn = $('newBtn');
+  const summaryBody = $('summaryBody'), summaryActions = $('summaryActions');
+  const copyBtn = $('copyBtn'), downloadBtn = $('downloadBtn');
+  const historyContainer = $('historyContainer');
+  const toast = $('toast');
+  const usageBadge = $('usageBadge'), usageBadgeText = $('usageBadgeText');
+  const listenGuideBtn = $('listenGuideBtn');
+  const calGrid = $('calGrid'), calMonthLabel = $('calMonthLabel'), calPrev = $('calPrev'), calNext = $('calNext');
+  const calFilterRow = $('calFilterRow'), calFilterLabel = $('calFilterLabel'), calClearFilter = $('calClearFilter');
+  const paywallOverlay = $('paywallOverlay'), paywallStepLogin = $('paywallStepLogin'), paywallStepPlans = $('paywallStepPlans');
+  const googleLoginBtn = $('googleLoginBtn'), paywallBackBtn = $('paywallBackBtn'), loggedInAsLine = $('loggedInAsLine');
+
+  const FREE_LIMIT = 3;
+  let recognition = null, isRecording = false, baseTranscript = '';
+  let currentSummary = null, currentTitle = '';
+  let calViewDate = new Date();
+  let selectedDate = null; // 'YYYY-MM-DD'
+  let allMeetings = []; // cached records {id,title,createdAt,summary,rawText}
+  let usageCount = 0;
+  let isSubscribed = false;
+  let googleProfile = null; // mock Google account after "login"
+  let pendingActionAfterUnlock = null;
+
+  function showToast(msg){ toast.textContent = msg; toast.classList.add('show'); setTimeout(()=> toast.classList.remove('show'), 2000); }
+  function esc(s){ return (s || '').toString().replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+  function dateKey(d){ const y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,'0'), day=String(d.getDate()).padStart(2,'0'); return `${y}-${m}-${day}`; }
+
+  /* ================= Session (guest mode, no upfront login) ================= */
+  async function initSession(){
+    try{ const langRes = await window.storage.get('lang_pref'); if(langRes && langRes.value) currentLang = langRes.value; }catch(e){}
+    try{ const uRes = await window.storage.get('usage_count'); if(uRes) usageCount = parseInt(uRes.value, 10) || 0; }catch(e){}
+    try{ const sRes = await window.storage.get('subscription'); if(sRes) isSubscribed = JSON.parse(sRes.value) === true; }catch(e){}
+    try{ const gRes = await window.storage.get('google_profile'); if(gRes) googleProfile = JSON.parse(gRes.value); }catch(e){}
+    buildTopLangSwitch();
+    applyStaticTranslations();
+    updateUsageBadge();
+    loadAllMeetings();
+  }
+
+  function updateUsageBadge(){
+    if(isSubscribed){
+      usageBadge.classList.add('sub');
+      usageBadgeText.textContent = t('subscribedBadge');
+    } else {
+      usageBadge.classList.remove('sub');
+      usageBadgeText.textContent = `${t('freeBadgeLabel')} ${usageCount}/${FREE_LIMIT}`;
+    }
+  }
+
+  /* ================= Paywall: Google login mock -> plan selection mock ================= */
+  function openPaywall(){
+    paywallStepPlans.classList.add('hidden');
+    paywallStepLogin.classList.remove('hidden');
+    paywallOverlay.classList.remove('hidden');
+  }
+  function closePaywall(){ paywallOverlay.classList.add('hidden'); }
+
+  /* ================= Firebase Auth (Google Sign-In) =================
+     1) Firebase 콘솔(console.firebase.google.com) > 프로젝트 설정 > 일반 탭에서
+        웹 앱을 추가하면 아래 firebaseConfig 값을 그대로 복사해서 넣을 수 있습니다.
+        (이 config 값들은 비공개 키가 아니라 공개되어도 되는 클라이언트 식별자입니다 —
+        실제 보안은 Firebase Console의 Authentication > 승인된 도메인 설정과
+        Firestore/RTDB 보안 규칙에서 처리됩니다.)
+     2) Authentication > Sign-in method 에서 Google 제공업체를 사용 설정하세요.
+     3) Authentication > 설정 > 승인된 도메인에 실제 배포 도메인(예: voxbrief.vercel.app)을
+        반드시 추가해야 로그인 팝업이 동작합니다. 이 아티팩트 미리보기 도메인은
+        등록할 수 없으므로, 여기서는 실패 시 데모 로그인으로 자동 대체됩니다.
+  */
+  const firebaseConfig = {
+    apiKey: "YOUR_API_KEY",
+    authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+    projectId: "YOUR_PROJECT_ID",
+    appId: "YOUR_APP_ID"
+  };
+  let fbAuthInstance = null, googleProviderInstance = null;
+
+  async function ensureFirebase(){
+    if(fbAuthInstance) return;
+    const { initializeApp } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js");
+    const { getAuth, GoogleAuthProvider } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js");
+    const app = initializeApp(firebaseConfig);
+    fbAuthInstance = getAuth(app);
+    googleProviderInstance = new GoogleAuthProvider();
+  }
+
+  googleLoginBtn.addEventListener('click', async () => {
+    googleLoginBtn.disabled = true;
+    const labelEl = googleLoginBtn.querySelector('#googleBtnLabel');
+    const originalLabel = labelEl.textContent;
+    labelEl.textContent = '...';
+
+    try{
+      await ensureFirebase();
+      const { signInWithPopup } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js");
+      const result = await signInWithPopup(fbAuthInstance, googleProviderInstance);
+      const u = result.user;
+      googleProfile = { name: u.displayName || 'Google User', email: u.email, uid: u.uid };
+    }catch(err){
+      // firebaseConfig가 아직 실제 값으로 채워지지 않았거나, 이 도메인이 Firebase에
+      // 승인된 도메인으로 등록되지 않은 경우(지금 이 미리보기가 그 경우입니다) 여기로 옵니다.
+      console.warn('Firebase sign-in unavailable, falling back to demo login:', err);
+      showToast('Firebase 설정 전 — 데모 로그인으로 진행합니다');
+      googleProfile = { name: 'Google 사용자(데모)', email: 'user@gmail.com' };
+    }
+
+    try{ await window.storage.set('google_profile', JSON.stringify(googleProfile)); }catch(e){}
+    googleLoginBtn.disabled = false;
+    labelEl.textContent = originalLabel;
+
+    loggedInAsLine.textContent = `${googleProfile.name} (${googleProfile.email})`;
+    paywallStepLogin.classList.add('hidden');
+    paywallStepPlans.classList.remove('hidden');
+  });
+
+  paywallBackBtn.addEventListener('click', () => {
+    paywallStepPlans.classList.add('hidden');
+    paywallStepLogin.classList.remove('hidden');
+  });
+
+  document.querySelectorAll('.plan-card').forEach(card => {
+    card.addEventListener('click', async () => {
+      const plan = card.getAttribute('data-plan');
+      card.style.opacity = '0.6';
+      // NOTE: Demo only — a real checkout replaces this with a Polar/Toss Payments
+      // checkout redirect + webhook confirmation before flipping `subscription` to true.
+      await new Promise(res => setTimeout(res, 600));
+      isSubscribed = true;
+      try{ await window.storage.set('subscription', JSON.stringify(true)); }catch(e){}
+      try{ await window.storage.set('subscription_plan', plan); }catch(e){}
+      card.style.opacity = '1';
+      closePaywall();
+      updateUsageBadge();
+      showToast(t('subscribeSuccessToast'));
+      if(pendingActionAfterUnlock){ const fn = pendingActionAfterUnlock; pendingActionAfterUnlock = null; fn(); }
+    });
+  });
+
+  /* ================= Speech Recognition ================= */
+  function initRecognition(){
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if(!SR){ return null; }
+    const r = new SR();
+    r.lang = LOCALE_MAP[currentLang] || 'ko-KR';
+    r.continuous = true; r.interimResults = true;
+    return r;
+  }
+
+  micBtn.addEventListener('click', () => {
+    if(isRecording){ stopRecording(); return; }
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if(!SR){ recStatus.textContent = t('micHintUnsupported'); recStatus.classList.add('err'); return; }
+    recStatus.classList.remove('err');
+    baseTranscript = transcriptBox.value ? transcriptBox.value + '\n' : '';
+    recognition = initRecognition();
+
+    recognition.onstart = () => {
+      isRecording = true;
+      micBtn.classList.add('recording'); micRing.classList.add('pulse'); wave.classList.add('live');
+      modeTag.textContent = t('modeListening');
+      recStatus.classList.remove('err'); recStatus.textContent = t('micHintListening');
+    };
+    recognition.onresult = (e) => {
+      let interim = '', final = '';
+      for(let i = e.resultIndex; i < e.results.length; i++){
+        const txt = e.results[i][0].transcript;
+        if(e.results[i].isFinal) final += txt + ' '; else interim += txt;
+      }
+      if(final) baseTranscript += final;
+      transcriptBox.value = baseTranscript + interim;
+      transcriptBox.scrollTop = transcriptBox.scrollHeight;
+    };
+    recognition.onerror = (e) => {
+      recStatus.classList.add('err');
+      if(e.error === 'not-allowed' || e.error === 'service-not-allowed'){ recStatus.textContent = t('micHintDenied'); }
+      else { recStatus.textContent = t('micHintErrorPrefix') + ' (' + e.error + ')'; }
+      stopRecording();
+    };
+    recognition.onend = () => { if(isRecording){ try{ recognition.start(); }catch(err){ stopRecording(); } } };
+    try{ recognition.start(); }catch(err){ recStatus.classList.add('err'); recStatus.textContent = t('micHintIdle'); }
+  });
+
+  function stopRecording(){
+    isRecording = false;
+    if(recognition){ try{ recognition.onend = null; recognition.stop(); }catch(e){} }
+    micBtn.classList.remove('recording'); micRing.classList.remove('pulse'); wave.classList.remove('live');
+    modeTag.textContent = t('modeWaiting');
+    recStatus.classList.remove('err'); recStatus.textContent = t('micHintIdle');
+  }
+
+  clearBtn.addEventListener('click', () => { transcriptBox.value = ''; baseTranscript = ''; });
+
+  newBtn.addEventListener('click', () => {
+    transcriptBox.value = ''; baseTranscript = ''; titleInput.value = '';
+    currentSummary = null; summaryActions.style.display = 'none';
+    summaryBody.innerHTML = emptyStateHTML();
+  });
+
+  /* ================= Voice guide (Text-to-Speech) ================= */
+  listenGuideBtn.addEventListener('click', () => {
+    if(!('speechSynthesis' in window)){
+      showToast('음성 안내를 지원하지 않는 브라우저예요');
+      return;
+    }
+    window.speechSynthesis.cancel(); // stop any guide already playing before starting a new one
+    const utter = new SpeechSynthesisUtterance(t('usageGuideText'));
+    utter.lang = LOCALE_MAP[currentLang] || 'ko-KR';
+    utter.rate = 1;
+    // Prefer a voice that matches the selected language exactly, if the browser has one loaded
+    const voices = window.speechSynthesis.getVoices();
+    const match = voices.find(v => v.lang === utter.lang) || voices.find(v => v.lang && v.lang.startsWith(currentLang));
+    if(match) utter.voice = match;
+    window.speechSynthesis.speak(utter);
+  });
+
+  function emptyStateHTML(){
+    return `<div class="empty-state">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M6 3h9l5 5v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z" stroke="#5b6790" stroke-width="1.6"/><path d="M9 12h6M9 16h6M9 8h3" stroke="#5b6790" stroke-width="1.6" stroke-linecap="round"/></svg>
+      <p>${t('emptyStateText')}</p>
+    </div>`;
+  }
+
+  /* ================= AI Summarization ================= */
+  summarizeBtn.addEventListener('click', async () => {
+    const text = transcriptBox.value.trim();
+    if(!text){ showToast(t('noInputToast')); return; }
+    if(!isSubscribed && usageCount >= FREE_LIMIT){
+      pendingActionAfterUnlock = () => summarizeBtn.click();
+      openPaywall();
+      return;
+    }
+    if(isRecording) stopRecording();
+
+    summarizeBtn.disabled = true;
+    summaryActions.style.display = 'none';
+    summaryBody.innerHTML = `<div class="loading-row"><div class="spinner"></div> ${t('loadingText')}</div>`;
+
+    const langName = SUMMARY_LANG_NAME[currentLang] || '한국어';
+    const systemPrompt = `당신은 기업 회의를 정리하는 숙련된 회의록 담당자입니다.
+주어진 회의 내용(음성 인식 텍스트일 수 있어 오탈자/구어체가 섞여 있을 수 있음)을 분석해서,
+아래 JSON 스키마 형식으로만 응답하세요. 다른 설명, 전문, 마크다운 코드블록 표시는 절대 포함하지 마세요.
+모든 텍스트 값은 반드시 ${langName}(으)로 작성하세요. 회의 내용에 없는 정보는 추측하지 말고 빈 배열이나 적절한 기본값으로 표기하세요.
+
+스키마:
+{
+  "topic": "회의 주제 한 줄",
+  "summary": "핵심 내용을 3~5줄로 요약 (줄바꿈은 \\n 사용)",
+  "agenda": [{"title": "논의 안건", "detail": "논의 내용 1~2문장"}],
+  "decisions": ["확정된 결정사항 문장"],
+  "action_items": [{"owner": "담당자명 또는 미정", "task": "할 일", "due": "마감일 또는 미정"}],
+  "open_issues": ["추가 확인이 필요한 쟁점"],
+  "follow_up": {"needed": true or false, "topic": "필요 시 후속 회의 주제, 불필요하면 빈 문자열"}
+}`;
+
+    try{
+      const response = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "claude-sonnet-4-6",
+          max_tokens: 1000,
+          system: systemPrompt,
+          messages: [{ role: "user", content: `회의 제목(참고용, 없으면 무시): ${titleInput.value || '(미입력)'}\n\n회의 내용:\n${text}` }]
+        })
+      });
+      const data = await response.json();
+      const textBlock = (data.content || []).find(b => b.type === 'text');
+      if(!textBlock) throw new Error('empty response');
+      let raw = textBlock.text.trim();
+      raw = raw.replace(/^```json/i,'').replace(/^```/,'').replace(/```$/,'').trim();
+      const parsed = JSON.parse(raw);
+      currentSummary = parsed;
+      currentTitle = titleInput.value.trim() || parsed.topic || (t('summaryCardTitle'));
+      renderSummary(parsed);
+      await saveToHistory(parsed, currentTitle, text);
+      await loadAllMeetings();
+      if(!isSubscribed){
+        usageCount += 1;
+        try{ await window.storage.set('usage_count', String(usageCount)); }catch(e){}
+        updateUsageBadge();
+      }
+      showToast(t('doneToast'));
+    }catch(err){
+      summaryBody.innerHTML = `<div class="empty-state"><p style="color:var(--vermilion);">${t('errorText')}</p></div>`;
+      console.error(err);
+    }finally{
+      summarizeBtn.disabled = false;
+    }
+  });
+
+  function renderSummary(s){
+    const agendaHTML = (s.agenda && s.agenda.length)
+      ? s.agenda.map(a => `<div class="agenda-item"><b>${esc(a.title)}</b><span>${esc(a.detail)}</span></div>`).join('')
+      : `<p style="color:var(--text-faint); font-size:13px;">${t('noAgenda')}</p>`;
+    const decisionsHTML = (s.decisions && s.decisions.length)
+      ? `<ul class="plain">${s.decisions.map(d => `<li>${esc(d)}</li>`).join('')}</ul>`
+      : `<p style="color:var(--text-faint); font-size:13px;">${t('noDecisions')}</p>`;
+    const actionsHTML = (s.action_items && s.action_items.length)
+      ? `<table class="action-table"><thead><tr><th>${t('tableOwner')}</th><th>${t('tableTask')}</th><th>${t('tableDue')}</th></tr></thead><tbody>
+          ${s.action_items.map(a => `<tr><td class="owner">${esc(a.owner)}</td><td>${esc(a.task)}</td><td class="due">${esc(a.due)}</td></tr>`).join('')}
+         </tbody></table>`
+      : `<p style="color:var(--text-faint); font-size:13px;">${t('noActions')}</p>`;
+    const issuesHTML = (s.open_issues && s.open_issues.length)
+      ? `<ul class="plain">${s.open_issues.map(i => `<li>${esc(i)}</li>`).join('')}</ul>`
+      : `<p style="color:var(--text-faint); font-size:13px;">${t('noIssues')}</p>`;
+    const fu = s.follow_up || {needed:false, topic:''};
+    const followupHTML = `<div class="followup-box ${fu.needed ? 'needed' : ''}">
+        <span class="followup-badge">${fu.needed ? t('followupNeeded') : t('followupNotNeeded')}</span>
+        <span style="font-size:13px; color:var(--text-dim);">${fu.needed ? esc(fu.topic || '') : t('followupNoneText')}</span>
+      </div>`;
+
+    summaryBody.innerHTML = `
+      <span class="pill">${t('summaryCardTitle')}</span>
+      <div class="summary-topic">${esc(s.topic || '')}</div>
+      <p class="summary-lead">${esc(s.summary || '')}</p>
+      <div class="sec"><div class="sec-title"><span class="dot"></span>${t('sectionAgenda')}</div>${agendaHTML}</div>
+      <div class="sec"><div class="sec-title"><span class="dot"></span>${t('sectionDecisions')}</div>${decisionsHTML}</div>
+      <div class="sec"><div class="sec-title"><span class="dot"></span>${t('sectionActions')}</div>${actionsHTML}</div>
+      <div class="sec"><div class="sec-title"><span class="dot"></span>${t('sectionIssues')}</div>${issuesHTML}</div>
+      <div class="sec"><div class="sec-title"><span class="dot"></span>${t('sectionFollowup')}</div>${followupHTML}</div>
+    `;
+    summaryActions.style.display = 'flex';
+  }
+
+  function summaryToText(s, title){
+    const lines = [];
+    lines.push(`${t('summaryCardTitle')} — ${title}`);
+    lines.push('='.repeat(40)); lines.push('');
+    lines.push(`[${t('summaryCardTitle')}]\n${s.summary || ''}`); lines.push('');
+    lines.push(`[${t('sectionAgenda')}]`);
+    (s.agenda||[]).forEach(a => lines.push(`- ${a.title}: ${a.detail}`)); lines.push('');
+    lines.push(`[${t('sectionDecisions')}]`);
+    (s.decisions||[]).forEach(d => lines.push(`- ${d}`)); lines.push('');
+    lines.push(`[${t('sectionActions')}]`);
+    (s.action_items||[]).forEach(a => lines.push(`- (${a.owner}) ${a.task} · ${t('tableDue')}: ${a.due}`)); lines.push('');
+    lines.push(`[${t('sectionIssues')}]`);
+    (s.open_issues||[]).forEach(i => lines.push(`- ${i}`)); lines.push('');
+    const fu = s.follow_up || {};
+    lines.push(`[${t('sectionFollowup')}] ${fu.needed ? t('followupNeeded') + ' — ' + (fu.topic||'') : t('followupNotNeeded')}`);
+    return lines.join('\n');
+  }
+
+  copyBtn.addEventListener('click', () => {
+    if(!currentSummary) return;
+    navigator.clipboard.writeText(summaryToText(currentSummary, currentTitle))
+      .then(() => showToast(t('copiedToast'))).catch(() => showToast(t('copyFailToast')));
+  });
+
+  downloadBtn.addEventListener('click', () => {
+    if(!currentSummary) return;
+    const blob = new Blob([summaryToText(currentSummary, currentTitle)], {type:'text/plain;charset=utf-8'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url;
+    a.download = `${currentTitle.replace(/[\\/:*?"<>|]/g,'')}.txt`;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showToast(t('downloadToast'));
+  });
+
+  /* ================= Storage ================= */
+  async function saveToHistory(summary, title, rawText){
+    try{
+      const id = 'mtg_' + Date.now();
+      const record = { id, title, createdAt: new Date().toISOString(), summary, rawText };
+      await window.storage.set(id, JSON.stringify(record));
+      const idxRes = await getIndexSafe();
+      const idx = idxRes ? JSON.parse(idxRes.value) : [];
+      idx.unshift(id);
+      await window.storage.set('meeting_index', JSON.stringify(idx.slice(0, 80)));
+    }catch(e){ console.error('save failed', e); }
+  }
+  async function getIndexSafe(){ try{ return await window.storage.get('meeting_index'); }catch(e){ return null; } }
+
+  async function loadAllMeetings(){
+    allMeetings = [];
+    try{
+      const idxRes = await getIndexSafe();
+      if(!idxRes){ renderCalendar(); renderHistory(); return; }
+      const idx = JSON.parse(idxRes.value);
+      for(const id of idx.slice(0,80)){
+        try{ const r = await window.storage.get(id); if(r) allMeetings.push(JSON.parse(r.value)); }catch(e){}
+      }
+    }catch(e){}
+    renderCalendar();
+    renderHistory();
+  }
+
+  /* ================= Calendar ================= */
+  const DOW = {
+    ko: ['일','월','화','수','목','금','토'],
+    en: ['Su','Mo','Tu','We','Th','Fr','Sa'],
+    ja: ['日','月','火','水','木','金','土'],
+    zh: ['日','一','二','三','四','五','六'],
+    es: ['Do','Lu','Ma','Mi','Ju','Vi','Sá'],
+    pt: ['Do','Se','Te','Qu','Qu','Se','Sá'],
+    de: ['So','Mo','Di','Mi','Do','Fr','Sa']
+  };
+
+  calPrev.addEventListener('click', () => { calViewDate.setMonth(calViewDate.getMonth()-1); renderCalendar(); });
+  calNext.addEventListener('click', () => { calViewDate.setMonth(calViewDate.getMonth()+1); renderCalendar(); });
+  calClearFilter.addEventListener('click', () => { selectedDate = null; renderCalendar(); renderHistory(); });
+
+  function renderCalendar(){
+    const locale = LOCALE_MAP[currentLang] || 'ko-KR';
+    const y = calViewDate.getFullYear(), m = calViewDate.getMonth();
+    calMonthLabel.textContent = new Intl.DateTimeFormat(locale, {year:'numeric', month:'long'}).format(calViewDate);
+
+    const dateSet = new Set(allMeetings.map(mt => dateKey(new Date(mt.createdAt))));
+    const firstDow = new Date(y, m, 1).getDay();
+    const daysInMonth = new Date(y, m+1, 0).getDate();
+    const todayKey = dateKey(new Date());
+
+    let html = (DOW[currentLang] || DOW.ko).map(d => `<div class="cal-dow">${d}</div>`).join('');
+    for(let i=0;i<firstDow;i++){ html += `<div class="cal-day empty"></div>`; }
+    for(let d=1; d<=daysInMonth; d++){
+      const key = `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+      const classes = ['cal-day'];
+      if(key === todayKey) classes.push('today');
+      if(dateSet.has(key)) classes.push('has-meeting');
+      if(key === selectedDate) classes.push('selected');
+      html += `<div class="${classes.join(' ')}" data-date="${key}">${d}</div>`;
+    }
+    calGrid.innerHTML = html;
+    calGrid.querySelectorAll('.cal-day:not(.empty)').forEach(el => {
+      el.addEventListener('click', () => {
+        const key = el.getAttribute('data-date');
+        selectedDate = (selectedDate === key) ? null : key;
+        renderCalendar(); renderHistory();
+      });
+    });
+
+    if(selectedDate){
+      calFilterRow.style.display = 'flex';
+      const [yy,mm,dd] = selectedDate.split('-').map(Number);
+      calFilterLabel.textContent = new Intl.DateTimeFormat(locale, {month:'short', day:'numeric', weekday:'short'}).format(new Date(yy, mm-1, dd));
+    } else {
+      calFilterRow.style.display = 'none';
+    }
+  }
+
+  /* ================= History (grouped by date) ================= */
+  function renderHistory(){
+    if(!allMeetings.length){
+      historyContainer.innerHTML = `<div class="history-empty">${t('historyEmpty')}</div>`;
+      return;
+    }
+    const locale = LOCALE_MAP[currentLang] || 'ko-KR';
+    let list = allMeetings;
+    if(selectedDate){ list = allMeetings.filter(mt => dateKey(new Date(mt.createdAt)) === selectedDate); }
+    if(!list.length){
+      historyContainer.innerHTML = `<div class="history-empty">${t('historyEmpty')}</div>`;
+      return;
+    }
+    const groups = {};
+    const order = [];
+    list.forEach(mt => {
+      const key = dateKey(new Date(mt.createdAt));
+      if(!groups[key]){ groups[key] = []; order.push(key); }
+      groups[key].push(mt);
+    });
+
+    historyContainer.innerHTML = order.map(key => {
+      const [yy,mm,dd] = key.split('-').map(Number);
+      const label = new Intl.DateTimeFormat(locale, {month:'long', day:'numeric', weekday:'short'}).format(new Date(yy, mm-1, dd));
+      const itemsHTML = groups[key].map(it => {
+        const d = new Date(it.createdAt);
+        const timeStr = `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+        return `<div class="history-item" data-id="${it.id}">
+            <div class="h-title">${esc(it.title)}</div>
+            <div class="h-meta">${timeStr}</div>
+          </div>`;
+      }).join('');
+      return `<div class="history-group">
+          <div class="history-group-title">${esc(label)}</div>
+          <div class="history-list">${itemsHTML}</div>
+        </div>`;
+    }).join('');
+
+    historyContainer.querySelectorAll('.history-item').forEach(el => {
+      el.addEventListener('click', () => {
+        const id = el.getAttribute('data-id');
+        const rec = allMeetings.find(mt => mt.id === id);
+        if(!rec) return;
+        currentSummary = rec.summary; currentTitle = rec.title;
+        titleInput.value = rec.title; transcriptBox.value = rec.rawText || '';
+        renderSummary(rec.summary);
+        showToast(t('loadedToast'));
+      });
+    });
+  }
+
+  initSession();
+})();
+</script>
+</body>
+</html>
